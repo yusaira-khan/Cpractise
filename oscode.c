@@ -37,7 +37,7 @@ void copy_command(char **source_command, char **dest_command) {
     dest_command[j] = (char *) NULL;
 }
 
-void print_history(char **history[ARGS_MAX], int total_command_count) {
+void print_history(char *history[][ARGS_MAX], int total_command_count) {
     int hist_start = 1, hist_end = total_command_count;
     char **command;
     if (total_command_count > HISTORY_SIZE) {
@@ -85,18 +85,8 @@ int getcmd(char *prompt, char *args[], int *background) {
     return i;
 }
 
-int exec_builtin(char *args[], int *exit_code_store) {
-    if (args[0]=="history"){
 
-    }else if (args[0]=="r"){
-
-    }
-    return  0;
-}
-
-void exec_arg(char **history[], int exit_code_store[], int command_count, int bg ) {
-    int index = get_index(command_count);
-    char** args=history[index];
+void exec_arg(char *args[], int bg, int *exit_code_store) {
     if (fork()) {
         //Parent (process that runs loop)
         if (!bg) {//Process is not running in background so wait for it to end
@@ -114,19 +104,19 @@ void exec_arg(char **history[], int exit_code_store[], int command_count, int bg
     }
 }
 
-void get_command_from_history(char **history[ARGS_MAX],
+void get_command_from_history(char *history[][ARGS_MAX],
                               char x, int total_command_count, int *exit_codes) {
-    int count = HISTORY_SIZE, end = total_command_count, start = 1;
+    int end = total_command_count, start = 1;
     if (total_command_count > HISTORY_SIZE) {
         start = total_command_count - HISTORY_SIZE + 1;
     }
     int buffer_end_index = get_index(total_command_count);
     //FIXME:handle errors
+    //FIXME: Doesn't work
     fflush(stdout);
-    for (int number = end; number >= start; number--) {
+    for (int number = end-1; number >= start; number--) {
         int i = get_index(number);
         if (1) {
-            int j = 0;
             copy_command(history[i], history[buffer_end_index]);
             print_single_command(history[buffer_end_index]);
             printf("\n");
@@ -136,11 +126,39 @@ void get_command_from_history(char **history[ARGS_MAX],
             } else {
                 exec_arg(history[buffer_end_index], 0, &exit_codes[buffer_end_index]);
             }
-            fflush(stdout);
-            fflush(stderr);
             return;
         }
     }
+}
+
+int exec_builtin(char *history[][ARGS_MAX], int exit_code_store[], int total_command_count) {
+    char **args = history[get_index(total_command_count)];
+    if (strcmp(args[0], "history") == 0) {
+        print_history(history, total_command_count);
+
+        return 1;
+    } else if (strcmp(args[0], "r") == 0) {
+        get_command_from_history(history, '\0', total_command_count, exit_code_store);
+        return 1;
+    } else if (strcmp(args[0], "cd") == 0) {
+        chdir(args[1]);
+        return 1;
+    } else if (strcmp(args[0], "pwd") == 0) {
+        char cwd[1024];
+        if (getcwd(cwd, sizeof(cwd)) != NULL)
+            fprintf(stdout, "Current working directory: %s\n", cwd);
+        return 1;
+    }
+    else if (strcmp(args[0], "jobs") == 0) {
+        return 1;
+    } else if (strcmp(args[0], "fg") == 0) {
+        return 1;
+    }
+    else if (strcmp(args[0], "exit") == 0) {
+        exit(-1);
+    }
+    exit_code_store[get_index(total_command_count)] = 0;
+    return 0;
 }
 
 int main() {
@@ -153,18 +171,18 @@ int main() {
     int exit_codes[HISTORY_SIZE];
     int command_count = 0;
     int index = -1;
+    int command_is_builtin = 0;
+    //TODO: share memory between processes for jobs and fg (share process id and remove when finished)
     while (always) {
         index = get_index(command_count + 1);
         args = history[index];
         args_count = getcmd("\n>>  ", args, &bg);
         args[args_count] = (char *) NULL;
         command_count++;
-        if (strcmp(args[0], "history") == 0) {
-            print_history(history, command_count);
-            continue;
+        command_is_builtin = exec_builtin(history, exit_codes, command_count);
+        if (!command_is_builtin) {
+            exec_arg(args, bg, &exit_codes[index]);
         }
-        exec_arg(history, exit_codes, command_count,bg);
-
     }
     return 0; //IDE complains
 }
