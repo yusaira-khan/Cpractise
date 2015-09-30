@@ -17,7 +17,7 @@ void print_single_command(char **command) {
     int i = 0;
 
     while (command[i] != (char *) NULL) {
-        printf("%s ", command[i]);
+        fprintf(stdout, " %s", command[i]);
         i++;
     }
 }
@@ -25,14 +25,11 @@ void print_single_command(char **command) {
 void copy_command(char **source_command, char **dest_command) {
     int j = 0;
     while (source_command[j] != (char *) NULL) {
-        char *word = source_command[j], *dest = dest_command[j];
-        int k = 0;
-        while (word[k] != '\0') {
-            dest[k] = word[k];
-            k++;
-        }
-        dest[k] = '\0';
+        fflush(stdout);
+        char *word = source_command[j];
+        dest_command[j] = word;
         j++;
+
     }
     dest_command[j] = (char *) NULL;
 }
@@ -45,10 +42,10 @@ void print_history(char *history[][ARGS_MAX], int total_command_count) {
     }
 
     for (int number = hist_start; number <= hist_end; number++) {
-        printf("%d ", number);
         command = history[get_index(number)];
+        fprintf(stdout, "%d ", number);
         print_single_command(command);
-        printf("\n");
+        fprintf(stdout, "\n");
     }
     fflush(stdout);
 }
@@ -59,7 +56,7 @@ int getcmd(char *prompt, char *args[], int *background) {
     char *line;
     size_t linecap = 0;
 
-    printf("%s", prompt);
+    fprintf(stdout, "%s", prompt);
     length = getline(&line, &linecap, stdin);
 
     //CTRL-D pressed
@@ -111,20 +108,31 @@ void get_command_from_history(char *history[][ARGS_MAX],
         start = total_command_count - HISTORY_SIZE + 1;
     }
     int buffer_end_index = get_index(total_command_count);
-    //FIXME:handle errors
-    //FIXME: Doesn't work
+    int exists = 0;
+    char selection_char,  **args = history[buffer_end_index];
     fflush(stdout);
-    for (int number = end-1; number >= start; number--) {
+    for (int number = end - 1; number >= start; number--) {
         int i = get_index(number);
-        if (1) {
-            copy_command(history[i], history[buffer_end_index]);
-            print_single_command(history[buffer_end_index]);
-            printf("\n");
+        if (args[1] == (char *) NULL) {
+            exists = 1;
+        } else {
+            selection_char = args[1][0];
+            if (history[i][0][0] == selection_char) {
+                exists = 1;
+            } else {
+                exists = 0;
+            }
+        }
+        if (exists) {
+            copy_command(history[i], args);
+            print_single_command(args);
+            fprintf(stdout, "\n");
+            exit_codes[buffer_end_index] = exit_codes[i];
             if (exit_codes[i] != 0) {
-                fprintf(stderr, "Command did not execute properly before so will not execute again\n");
+                fprintf(stderr, "Command exited with error code %d before so will not execute again\n", exit_codes[i]);
                 exit_codes[buffer_end_index] = 1;
             } else {
-                exec_arg(history[buffer_end_index], 0, &exit_codes[buffer_end_index]);
+                exec_arg(args, 0, &exit_codes[buffer_end_index]);
             }
             return;
         }
@@ -133,6 +141,8 @@ void get_command_from_history(char *history[][ARGS_MAX],
 
 int exec_builtin(char *history[][ARGS_MAX], int exit_code_store[], int total_command_count) {
     char **args = history[get_index(total_command_count)];
+    exit_code_store[get_index(total_command_count)] = -1;//not repeatable via 'r' command
+
     if (strcmp(args[0], "history") == 0) {
         print_history(history, total_command_count);
 
@@ -157,8 +167,7 @@ int exec_builtin(char *history[][ARGS_MAX], int exit_code_store[], int total_com
     else if (strcmp(args[0], "exit") == 0) {
         exit(-1);
     }
-    exit_code_store[get_index(total_command_count)] = 0;
-    return 0;
+    return 0;//command is not builtin
 }
 
 int main() {
