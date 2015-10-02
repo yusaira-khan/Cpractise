@@ -6,7 +6,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 int main(){
-    int time = 30;
+    int time = 10;
     sleep(time);
     printf("Slept for %d sec. Bye!\n",time);
     return 0;

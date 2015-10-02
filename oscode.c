@@ -152,8 +152,17 @@ void get_command_from_history(char *history[][ARGS_MAX], char x, int total_comma
     }
 }
 
+void shift_jobs(struct job jobs[], int *job_count, int *index) {
+    int diff = *job_count - *index;
+    for (int i = 0; i < diff; i++) {
+        jobs[i] = jobs[i + 1];
+    }
+    *index = *index - 1;
+    *job_count = *job_count - 1;
+}
+
 void print_jobs(struct job jobs[], int *job_count) {
-    int  child_status_temp;
+    int child_status_temp;
     for (int i = 0; i < *job_count; i++) {
         int status = waitpid(jobs[i].pid, &child_status_temp, WNOHANG);
         if (status == 0) {
@@ -162,10 +171,7 @@ void print_jobs(struct job jobs[], int *job_count) {
             printf("\n");
 
         } else {
-            //FIXME: shift jobs
-
-            *job_count = *job_count - 1;
-            i--;
+            shift_jobs(jobs, job_count, &i);
         }
     }
     if (*job_count == 0) {
@@ -173,12 +179,24 @@ void print_jobs(struct job jobs[], int *job_count) {
     }
 }
 
+int index_of_job(struct job jobs[], int *jobcount,int job_pid) {
+    for (int i = 0; i < *jobcount && (i+1) < *jobcount; i++) {
+        if (jobs[i].pid == job_pid) {
+            return i;
+        }
+    }
+    return -1;
+}
+
 void execute_foreground(char *args[], struct job jobs[], int *job_count) {
     int child_status_temp, selected_job_pid;
     selected_job_pid = atoi(args[1]);
     waitpid(selected_job_pid, &child_status_temp, 0);
-    *job_count = *job_count - 1;
-    //FIXME: shift jobs
+    int index = index_of_job(jobs,job_count,selected_job_pid);
+    if (index == -1){
+        return;
+    }
+    shift_jobs(jobs,job_count,&index);
 }
 
 int exec_builtin(char *history[][ARGS_MAX], int exit_code_store[], int total_command_count,
@@ -210,8 +228,8 @@ int exec_builtin(char *history[][ARGS_MAX], int exit_code_store[], int total_com
             fprintf(stderr, "No PID given for fg");
             exit_code_store[get_index(total_command_count)] = 1; //NO PID provided
         }
-        else{
-            execute_foreground(args,jobs,job_count);
+        else {
+            execute_foreground(args, jobs, job_count);
         }
         return 1;
     }
