@@ -1,4 +1,13 @@
-#define _GNU_SOURCE //Needed to use getline with c99
+/*
+ * ECSE 427/ COMP 310
+ *Assignment1
+ *Name: Yusaira Khan
+ * ID:260526007
+ *
+ * Please compile with C99 supporting compiler
+ */
+
+//#define _GNU_SOURCE //Needed to use getline with gcc c99
 
 #include <stdio.h>
 #include <unistd.h>
@@ -41,13 +50,13 @@ void copy_command(char **source_command, char **dest_command) {
 }
 
 void print_history(char *history[][ARGS_MAX], int total_command_count) {
-    int hist_start = 1, hist_end = total_command_count;
+    int hist_start = 1, hist_end = total_command_count, number;
     char **command;
     if (total_command_count > HISTORY_SIZE) {
         hist_start = total_command_count - HISTORY_SIZE + 1;
     }
 
-    for (int number = hist_start; number <= hist_end; number++) {
+    for (number = hist_start; number <= hist_end; number++) {
         command = history[get_index(number)];
         fprintf(stdout, "%d ", number);
         print_single_command(command);
@@ -57,7 +66,7 @@ void print_history(char *history[][ARGS_MAX], int total_command_count) {
 }
 
 int getcmd(char *prompt, char *args[], int *background) {
-    int length, i = 0;
+    int length, i = 0,j;
     char *token, *loc;
     char *line;
     size_t linecap = 0;
@@ -78,7 +87,7 @@ int getcmd(char *prompt, char *args[], int *background) {
     } else
         *background = 0;
     while ((token = strsep(&line, " \t\n")) != NULL) {
-        for (int j = 0; j < strlen(token); j++)
+        for (j = 0; j < strlen(token); j++)
             //Add breaks at the end of each argument
             if (token[j] <= 32)
                 token[j] = '\0';
@@ -110,22 +119,23 @@ void exec_arg(char *args[], int bg, int *exit_code_store,
     } else {
         //child process(process that executes command)
         execvp(args[0], args);
+        fprintf(stderr,"Invalid command %s", args[0]);
         exit(-2);//program not found, so end with error
     }
 }
 
 void get_command_from_history(char *history[][ARGS_MAX], char x, int total_command_count, int *exit_codes,
                               struct job jobs[], int *job_count) {
-    int end = total_command_count, start = 1;
+    int end = total_command_count, start = 1,i,number,buffer_end_index,exists;
     if (total_command_count > HISTORY_SIZE) {
         start = total_command_count - HISTORY_SIZE + 1;
     }
-    int buffer_end_index = get_index(total_command_count);
-    int exists = 0;
+    buffer_end_index = get_index(total_command_count);
+    exists = 0;
     char selection_char, **args = history[buffer_end_index];
     fflush(stdout);
-    for (int number = end - 1; number >= start; number--) {
-        int i = get_index(number);
+    for (number = end - 1; number >= start; number--) {
+        i = get_index(number);
         if (args[1] == (char *) NULL) {
             exists = 1;
         } else {
@@ -153,8 +163,8 @@ void get_command_from_history(char *history[][ARGS_MAX], char x, int total_comma
 }
 
 void shift_jobs(struct job jobs[], int *job_count, int *index) {
-    int diff = *job_count - *index;
-    for (int i = 0; i < diff; i++) {
+    int diff = *job_count - *index, i =0;
+    for (i = 0; i < diff; i++) {
         jobs[i] = jobs[i + 1];
     }
     *index = *index - 1;
@@ -162,9 +172,9 @@ void shift_jobs(struct job jobs[], int *job_count, int *index) {
 }
 
 void print_jobs(struct job jobs[], int *job_count) {
-    int child_status_temp;
-    for (int i = 0; i < *job_count; i++) {
-        int status = waitpid(jobs[i].pid, &child_status_temp, WNOHANG);
+    int child_status_temp, status =0, i =0;
+    for (i = 0; i < *job_count; i++) {
+        status = waitpid(jobs[i].pid, &child_status_temp, WNOHANG);
         if (status == 0) {
             printf("ID: %d\tBackground command: ", jobs[i].pid);
             print_single_command(jobs[i].command);
@@ -180,7 +190,8 @@ void print_jobs(struct job jobs[], int *job_count) {
 }
 
 int index_of_job(struct job jobs[], int *jobcount,int job_pid) {
-    for (int i = 0; i < *jobcount && (i+1) < *jobcount; i++) {
+    int i;
+    for (i = 0; i < *jobcount && (i+1) < *jobcount; i++) {
         if (jobs[i].pid == job_pid) {
             return i;
         }
@@ -240,7 +251,6 @@ int exec_builtin(char *history[][ARGS_MAX], int exit_code_store[], int total_com
 }
 
 int main() {
-    setbuf(stdout, NULL);
     char **args; //Array of strings, to hold each argument of a command (Array of pointers not pointer to array)
     int bg; //Boolean to indicate that command should run in background
     int always = 1;
@@ -253,6 +263,7 @@ int main() {
     struct job jobs_list[JOBS_MAX];
     int job_count = 0;
 
+    setbuf(stdout, NULL);
     while (always) {
         index = get_index(command_count + 1);
         args = history[index];
