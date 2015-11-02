@@ -1,0 +1,10 @@
+Script started on Mon 19 Oct 2015 05:26:09 AM EDT
+]0;root@uoob: /home/yusaira-khan/ClionProjects/spoolerroot@uoob:/home/yusaira-khan/ClionProjects/spooler# exitcd /home/yusaira-khan/ClionProjects/spooler/
+]0;root@uoob: /home/yusaira-khan/ClionProjects/spoolerroot@uoob:/home/yusaira-khan/ClionProjects/spooler# cd /home/yusaira-khan/ClionProjects/spooler/exit[Kcd /home/yusaira-khan/ClionProjects/spooler/./server 5 &[K
+[1] 16965
+]0;root@uoob: /home/yusaira-khan/ClionProjects/spoolerroot@uoob:/home/yusaira-khan/ClionProjects/spooler# Printer is already running! Close printer and try again
+Bye!
+./server 5 &cd /home/yusaira-khan/ClionProjects/spooler/exit[K
+exit
+
+Script done on Mon 19 Oct 2015 05:26:26 AM EDT
